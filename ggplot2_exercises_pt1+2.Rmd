@@ -188,7 +188,7 @@ above is available directly as `geom_col()`
 
 ```{r}
 ggplot(mpg_counted) + 
-  geom_col(aes(x = class, y = count))
+  geom_col(aes(x = class, y = count))   # geom_col() = geom_bar() with the stat set to 'identity'
 ```
 
 Values calculated by the stat is available with the `after_stat()` function 
@@ -211,7 +211,8 @@ While the others must be used with the `after_stat()` function
 
 ```{r}
 ggplot(mpg) + 
-  geom_density(aes(x = hwy, y = after_stat(scaled)))
+  geom_density(aes(x = hwy, 
+                   y = after_stat(scaled)))
 ```
 
 #### Exercises
@@ -222,7 +223,10 @@ stat it uses as default. Then modify the code to use the stat directly instead
 
 ```{r}
 ggplot(mpg) + 
-  geom_bar(aes(x = class))
+  stat_count(aes(x = class))
+
+# ggplot(mpg) + 
+#   stat_count(aes(x = class), geom = "point")
 ```
 
 * * *
@@ -231,7 +235,8 @@ Use `stat_summary()` to add a red dot at the mean `hwy` for each group
 
 ```{r}
 ggplot(mpg) + 
-  geom_jitter(aes(x = class, y = hwy), width = 0.2)
+  geom_jitter(aes(x = class, y = hwy), width = 0.2) +
+  stat_summary(aes(x = class, y = hwy), fun = mean, geom = 'point', colour = 'red', size = 2)
 ```
 
 Hint: You will need to change the default geom of `stat_summary()`
@@ -245,7 +250,7 @@ ggplot(mpg) +
   geom_point(aes(x = displ, y = hwy, colour = class))
 ```
 
-take control by adding one explicitly. All scales follow the same naming 
+We can take control by adding one explicitly. All scales follow the same naming 
 conventions.
 
 ```{r}
@@ -254,13 +259,18 @@ ggplot(mpg) +
   scale_colour_brewer(type = 'qual')
 ```
 
-Positional mappings (x and y) also have associated scales.
+Positional mappings (x and y) also have associated scales (as opposed to colour scaled above).
 
 ```{r}
 ggplot(mpg) + 
   geom_point(aes(x = displ, y = hwy)) + 
   scale_x_continuous(breaks = c(3, 5, 6)) + 
-  scale_y_continuous(trans = 'log10')
+  scale_y_continuous(trans = 'log10')   # trans = tranformation
+
+# ggplot(mpg) + 
+#   geom_point(aes(x = displ, y = hwy)) + 
+#   scale_x_continuous(breaks = c(3, 5, 6)) + 
+#   scale_y_continuous()  # no log transformation
 ```
 
 #### Exercises
@@ -268,9 +278,19 @@ Use `RColorBrewer::display.brewer.all()` to see all the different palettes from
 Color Brewer and pick your favourite. Modify the code below to use it
 
 ```{r}
+RColorBrewer::display.brewer.all()
+
+# Original:
+ggplot(mpg) +
+  geom_point(aes(x = displ, y = hwy, colour = class)) +
+  scale_colour_brewer(type = 'qual')
+
+# Answer:
 ggplot(mpg) + 
   geom_point(aes(x = displ, y = hwy, colour = class)) + 
-  scale_colour_brewer(type = 'qual')
+  scale_colour_brewer(palette = "Set1")
+
+
 ```
 
 * * *
@@ -281,8 +301,15 @@ amount of cylinders (4, 5, 6, and 8) are present in the legend.
 
 ```{r}
 ggplot(mpg) + 
-  geom_point(aes(x = displ, y = hwy, colour = class)) + 
-  scale_colour_brewer(type = 'qual')
+  geom_point(aes(x = displ, y = hwy, colour = class, size = cyl)) + 
+  scale_colour_brewer(type = 'qual') + 
+  scale_size(breaks = c(4, 5, 6, 8))   # scale_radius is another option, but remember that area = pi*r^2 and the eye is drawn to area!
+
+# With scale_size_area():
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy, colour = class, size = cyl)) + 
+  scale_colour_brewer(type = 'qual') + 
+  scale_size_area(breaks = c(4, 5, 6, 8), max_size = 10)   # scale_radius is another option, but remember that area = pi*r^2 and the eye is drawn to area!
 ```
 
 Hint: The `breaks` argument in the scale is used to control which values are
@@ -299,6 +326,11 @@ variable, but to the continuous `cty` variable. What happens to the guide?
 ```{r}
 ggplot(mpg) + 
   geom_point(aes(x = displ, y = hwy, colour = class, size = cty))
+
+# Get 2 different aesthetics mapped to the same variable! And shown with the same guide - this is called guide merging. But only if they're both the same variable, like here
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy, colour = cty, size = cty)) +
+  guides(colour = 'legend')
 ```
 
 * * *
@@ -310,8 +342,10 @@ happens when multiple aesthetics are mapped to the same variable and uses the
 guide type?
 
 ```{r}
-ggplot(mpg) + 
-  geom_point(aes(x = displ, y = hwy, colour = cty, size = cty))
+# ggplot(mpg) + 
+#   geom_point(aes(x = displ, y = hwy, colour = cty, size = cty))
+
+# See previous chunk for solution
 ```
 
 ### Facets
@@ -341,6 +375,16 @@ settings in the plot below:
 ggplot(mpg) + 
   geom_point(aes(x = displ, y = hwy)) + 
   facet_wrap(~ drv)
+
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy)) + 
+  facet_wrap(~ drv, scales = "free")  # both axes are free
+
+
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy)) + 
+  facet_wrap(~ drv, scales = "free_y")  # only y-axis is free
+
 ```
 
 * * *
@@ -353,6 +397,16 @@ between the panels in the plot. What happens?
 ggplot(mpg) + 
   geom_bar(aes(y = manufacturer)) + 
   facet_grid(class ~ .)
+
+ggplot(mpg) + 
+  geom_bar(aes(y = manufacturer)) + 
+  facet_grid(class ~ ., scales = 'free_y')
+
+# Make the space of each plot look better:
+ggplot(mpg) + 
+  geom_bar(aes(y = manufacturer)) + 
+  facet_grid(class ~ ., scales = 'free_y', space = 'free_y')
+
 ```
 
 Use the `space` argument in `facet_grid()` to change the plot above so each bar 
@@ -367,6 +421,12 @@ recreate the same panels present in the plot below by using `facet_wrap()`
 ggplot(mpg) + 
   geom_point(aes(x = displ, y = hwy)) + 
   facet_grid(year ~ drv)
+
+
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy)) + 
+  facet_wrap(~ drv + year)
+
 ```
 
 ### Coordinates
@@ -378,7 +438,6 @@ ggplot(mpg) +
   geom_bar(aes(x = class)) + 
   coord_polar()
 ```
-
 ```{r}
 ggplot(mpg) + 
   geom_bar(aes(x = class)) + 
@@ -391,16 +450,15 @@ You can zoom both on the scale...
 ```{r}
 ggplot(mpg) + 
   geom_bar(aes(x = class)) + 
-  scale_y_continuous(limits = c(0, 40))
+  scale_y_continuous(limits = c(0, 40))  # this removs data outside the limits 
 ```
 
-and in the coord. You usually want the latter as it avoids changing the plottet
-data
+and in the coord. You usually want the latter as it avoids changing the plotted data
 
 ```{r}
 ggplot(mpg) + 
   geom_bar(aes(x = class)) + 
-  coord_cartesian(ylim = c(0, 40))
+  coord_cartesian(ylim = c(0, 40))  # ALWAYS ZOOM USING COORD RATHER THAN SCALE!!
 ```
 
 #### Exercises
@@ -412,6 +470,16 @@ and then using `coord_trans()`. Compare the results — how do they differ?
 ```{r}
 ggplot(mpg) + 
   geom_point(aes(x = hwy, y = displ))
+
+ggplot(mpg) + 
+  geom_point(aes(x = hwy, y = displ)) +
+  scale_y_continuous(trans = 'log')  # gives horrible y-axis values
+
+
+ggplot(mpg) + 
+  geom_point(aes(x = hwy, y = displ)) +
+  coord_trans(y = 'log') # much better! 
+
 ```
 
 * * *
@@ -447,6 +515,10 @@ change looks with a prebuild theme
 ```{r}
 ggplot(mpg) + 
   geom_bar(aes(y = class)) + 
+  facet_wrap(~year)
+
+ggplot(mpg) + 
+  geom_bar(aes(y = class)) + 
   facet_wrap(~year) + 
   theme_minimal()
 ```
@@ -465,11 +537,11 @@ ggplot(mpg) +
   theme_minimal() + 
   theme(
     text = element_text('Avenir Next Condensed'),
-    strip.text = element_text(face = 'bold', hjust = 0),
-    plot.caption = element_text(face = 'italic'),
-    panel.grid.major = element_line('white', size = 0.5),
-    panel.grid.minor = element_blank(),
-    panel.grid.major.y = element_blank(),
+    strip.text = element_text(face = 'bold', hjust = 0),  # makes things bold and left-justified
+    plot.caption = element_text(face = 'italic'),  # makes caption italic
+    panel.grid.major = element_line('white', size = 0.5),  # panel grid is white
+    panel.grid.minor = element_blank(),  # remove gridlines
+    panel.grid.major.y = element_blank(),  # remove gridlines
     panel.ontop = TRUE
   )
 ```
@@ -489,7 +561,11 @@ ggplot(mpg) +
        caption = "source: http://fueleconomy.gov",
        x = 'Number of cars',
        y = NULL)
+
+# Didn't do this exercise
 ```
+
+# Workshop part 2
 
 ## Extensions
 While ggplot2 comes with a lot of batteries included, the extension ecosystem 
