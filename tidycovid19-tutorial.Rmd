@@ -1,0 +1,49 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Tutorial link: https://www.r-bloggers.com/covid-19-explore-your-visualizer-degrees-of-freedom/
+
+```{r}
+remotes::install_github("thomasp85/transformr")
+
+# suppressPackageStartupMessages({
+#   library(tidyverse)
+#   library(tidycovid19)
+# })
+
+library(tidyverse)
+library(tidycovid19)
+library(plotly)
+
+covid19_dta <- download_merged_data(silent = TRUE, cached = TRUE)
+
+plot_covid19_spread(covid19_dta)
+```
+
+```{r}
+plot_covid19_spread(
+  covid19_dta, type = "deaths", min_cases = 100, min_by_ctry_obs = 7,
+  edate_cutoff = 40, per_capita = FALSE, log_scale = TRUE,
+  cumulative = TRUE, change_ave = 7,
+  highlight = c("FRA", "DEU", "ITA", "ESP", "GBR", "USA"),
+  intervention = NULL
+)
+```
+
+```{r}
+p <- plot_covid19_spread(
+  covid19_dta, type = "deaths", min_cases = 300, min_by_ctry_obs = 7,
+  edate_cutoff = 40, per_capita = FALSE, log_scale = FALSE,
+  cumulative = FALSE, change_ave =  1,
+  highlight = c("FRA", "DEU", "ITA", "ESP", "GBR", "USA"),
+  intervention = NULL
+)
+
+library(gganimate)
+
+p + transition_time(date)
+```
+
+

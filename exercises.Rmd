@@ -87,6 +87,8 @@ If you simple want to set it to a value, put it outside of `aes()`
 ggplot(faithful) + 
   geom_point(aes(x = eruptions, y = waiting),
              colour = 'steelblue')
+
+# if you want to take something from the data you put it inside aes(), but if you just want to set something e.g. size = X or colour = Y then you set it outside of aes()
 ```
 
 Some geoms only need a single mapping and will calculate the rest for you
@@ -112,7 +114,7 @@ See `?geom_point` for more information on the point layer.
 
 ```{r}
 ggplot(faithful) + 
-  geom_point(aes(x = eruptions, y = waiting))
+  geom_point(aes(x = eruptions, y = waiting), shape = 'square', alpha = 0.3)
 ```
 
 Hint 1: transparency is controlled with `alpha`, and shape with `shape`
@@ -124,7 +126,7 @@ Colour the two distributions in the histogram with different colours
 
 ```{r}
 ggplot(faithful) + 
-  geom_histogram(aes(x = eruptions))
+  geom_histogram(aes(x = eruptions, fill = eruptions < 3.1))
 ```
 
 Hint 1: For polygons you can map two different colour-like aesthetics: `colour` 
@@ -137,7 +139,8 @@ Colour the distributions in the histogram by whether `waiting` is above or below
 
 ```{r}
 ggplot(faithful) + 
-  geom_histogram(aes(x = eruptions))
+  geom_histogram(aes(x = eruptions, fill = waiting < 60), position = 'dodge', alpha = 0.4)
+# alternatives for position argument: 'stack' (default), 'identity' 
 ```
 
 Change the plot above by setting `position = 'dodge'` in `geom_histogram()` 
@@ -150,7 +153,8 @@ how to draw straight lines from a slope and intercept.
 
 ```{r}
 ggplot(faithful) + 
-  geom_point(aes(x = eruptions, y = waiting))
+  geom_point(aes(x = eruptions, y = waiting)) +
+  geom_abline(slope = -40, intercept = 200)
 ```
 
 ### Stat
@@ -174,6 +178,7 @@ data alone
 library(dplyr)
 mpg_counted <- mpg %>% 
   count(class, name = 'count')
+
 ggplot(mpg_counted) + 
   geom_bar(aes(x = class, y = count), stat = 'identity')
 ```
