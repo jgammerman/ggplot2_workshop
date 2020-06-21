@@ -4,7 +4,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 ```
 
 This document contains all the code that is displayed during the workshop. The
@@ -67,28 +67,31 @@ data("faithful")
 # Basic scatterplot
 ggplot(data = faithful, 
        mapping = aes(x = eruptions, y = waiting)) + 
-  geom_point()
+       geom_point()
+
 # Data and mapping can be given both as global (in ggplot()) or per layer
 ggplot() + 
   geom_point(mapping = aes(x = eruptions, y = waiting),
              data = faithful)
 ```
 
-If an aesthetic is linked to data it is put into `aes()`
+If an aesthetic (like colour) is linked to data it is put into `aes()`
 
 ```{r}
 ggplot(faithful) + 
-  geom_point(aes(x = eruptions, y = waiting, colour = eruptions < 3))
+  geom_point(aes(x = eruptions, y = waiting, colour = eruptions < 3))  # colour aesthetic is put in aes()
 ```
 
-If you simple want to set it to a value, put it outside of `aes()`
+If you simply want to set it to a value, put it outside of `aes()`
 
 ```{r}
+
+# Key point: if you want to take something from the data you put it inside aes(), but if you just want to set something e.g. size = X or colour = Y then you set it outside of aes()
+
 ggplot(faithful) + 
   geom_point(aes(x = eruptions, y = waiting),
              colour = 'steelblue')
 
-# if you want to take something from the data you put it inside aes(), but if you just want to set something e.g. size = X or colour = Y then you set it outside of aes()
 ```
 
 Some geoms only need a single mapping and will calculate the rest for you
@@ -143,6 +146,17 @@ ggplot(faithful) +
 # alternatives for position argument: 'stack' (default), 'identity' 
 ```
 
+```{r}
+ggplot(faithful) + 
+  geom_histogram(aes(x = eruptions, fill = waiting < 60), position = 'stack', alpha = 0.4)
+```
+
+```{r}
+ggplot(faithful) + 
+  geom_histogram(aes(x = eruptions, fill = waiting < 60), position = 'identity', alpha = 0.4)
+```
+
+
 Change the plot above by setting `position = 'dodge'` in `geom_histogram()` 
 (while keeping the colouring by `waiting`). What do `position` control? 
 
@@ -188,7 +202,7 @@ above is available directly as `geom_col()`
 
 ```{r}
 ggplot(mpg_counted) + 
-  geom_col(aes(x = class, y = count))
+  geom_col(aes(x = class, y = count))  # i.e. geom_col() has stat = identity, not count. If you don't have a count column, use geom
 ```
 
 Values calculated by the stat is available with the `after_stat()` function 
@@ -224,6 +238,19 @@ stat it uses as default. Then modify the code to use the stat directly instead
 ggplot(mpg) + 
   geom_bar(aes(x = class))
 ```
+
+```{r}
+ggplot(mpg) + 
+  stat_count(aes(x = class))  # gives the same result as above
+```
+
+
+```{r}
+
+ggplot(mpg) + 
+  stat_count(aes(x = class), geom = 'point')  # changing the deafult geom of the stat
+```
+
 
 * * *
 

@@ -1,0 +1,460 @@
+---
+title: "ggplot2 examples and exercises part 2"
+output: html_document
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+library(ggplot2)
+
+```
+
+
+## Extensions
+While ggplot2 comes with a lot of batteries included, the extension ecosystem 
+provides priceless additional features
+
+### Plot composition
+We start by creating 3 separate plots
+```{r}
+p1 <- ggplot(msleep) + 
+  geom_boxplot(aes(x = sleep_total, y = vore, fill = vore))
+
+p1
+```
+
+```{r}
+p2 <- ggplot(msleep) + 
+  geom_bar(aes(y = vore, fill = vore))
+
+p2
+```
+
+```{r}
+p3 <- ggplot(msleep) + 
+  geom_point(aes(x = bodywt, y = sleep_total, colour = vore)) + 
+  scale_x_log10()
+
+p3
+```
+
+Combining them with patchwork is a breeze using the different operators
+
+```{r}
+library(patchwork)
+
+p1 + p2 + p3
+
+(p1 | p2) / 
+   p3
+
+p_all <- (p1 | p2) / 
+            p3
+p_all + plot_layout(guides = 'collect')
+
+p_all & theme(legend.position = 'none')    # the & operator applies this to all plots, unlike the + operator
+
+p_all <- p_all & theme(legend.position = 'none')
+p_all + plot_annotation(
+  title = 'Mammalian sleep patterns',
+  tag_levels = 'A'
+)
+```
+
+#### Exercises
+Patchwork will assign the same amount of space to each plot by default, but this
+can be controlled with the `widths` and `heights` argument in `plot_layout()`. 
+This can take a numeric vector giving their relative sizes (e.g. `c(2, 1)` will 
+make the first plot twice as big as the second). Modify the code below so that
+the middle plot takes up half of the total space:
+
+```{r}
+p <- ggplot(mtcars) + 
+  geom_point(aes(x = disp, y = mpg))
+p + p + p
+```
+
+```{r}
+p + p + p + plot_layout(widths = c(1, 2, 1))
+```
+
+```{r}
+# Another extension - using actual units for the width:
+p + p + p + plot_layout(widths = unit(c(5, 1, 1), c('cm', 'null', 'null')))  # first plot gets a fixed width of 5cm, the two remaining plots then split the remaining space between them
+```
+
+
+* * *
+
+The `&` operator can be used with any type of ggplot2 object, not just themes.
+Modify the code below so the two plots share the same y-axis (same limits)
+
+```{r}
+p1 <- ggplot(mtcars[mtcars$gear == 3,]) + 
+  geom_point(aes(x = disp, y = mpg))
+p2 <- ggplot(mtcars[mtcars$gear == 4,]) + 
+  geom_point(aes(x = disp, y = mpg))
+
+p1 + p2
+```
+
+```{r}
+p1 <- ggplot(mtcars[mtcars$gear == 3,]) + 
+  geom_point(aes(x = disp, y = mpg))
+p2 <- ggplot(mtcars[mtcars$gear == 4,]) + 
+  geom_point(aes(x = disp, y = mpg))
+
+p1 + p2 & scale_y_continuous(limits = c(10, 40))
+```
+
+
+* * *
+
+Patchwork contains many features for fine tuning the layout and annotation. Very
+complex layouts can be obtained by providing a design specification to the 
+`design` argument in `plot_layout()`. The design can be defined as a textual 
+representation of the cells. Use the layout given below. How should the textual 
+representation be understood.
+
+```{r}
+p1 <- ggplot(mtcars) + 
+  geom_point(aes(x = disp, y = mpg))
+p2 <- ggplot(mtcars) + 
+  geom_bar(aes(x = factor(gear)))
+p3 <- ggplot(mtcars) + 
+  geom_boxplot(aes(x = factor(gear), y = mpg))
+
+layout <- '
+AA#
+#BB
+C##
+'
+# Note that 1,2,3 would also work instead of A, B, C here
+
+p1 + p2 + p3 + plot_layout(design = layout)
+```
+
+### Animation
+ggplot2 is usually focused on static plots, but gganimate extends the API and
+grammar to describe animations. As such it feels like a very natural extension
+of using ggplot2
+
+```{r}
+ggplot(economics) + 
+  geom_line(aes(x = date, y = unemploy))
+
+library(gganimate)
+
+ggplot(economics) + 
+  geom_line(aes(x = date, y = unemploy)) + 
+  transition_reveal(along = date)
+```
+
+There are many different transitions that control how data is interpreted for
+animation, as well as a range of other animation specific features
+
+```{r}
+ggplot(mpg) + 
+  geom_bar(aes(x = factor(cyl)))
+
+ggplot(mpg) + 
+  geom_bar(aes(x = factor(cyl))) + 
+  labs(title = 'Number of cars in {closest_state} by number of cylinders') + # gives a dynamic chart title
+  transition_states(states = year) + 
+  enter_grow() + # when new data comes into the animation, we will use grow
+  exit_fade()  # when data leaves the animation we will just fade it out
+```
+
+#### Exercises
+The animation below will animate between points showing cars with different 
+cylinders.
+
+```{r}
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy)) + 
+  ggtitle("Cars with {closest_state} cylinders") + 
+  transition_states(factor(cyl))
+```
+
+gganimate uses the `group` aesthetic to match observations between states. By 
+default the group aesthetic is set to the same value, so observations are 
+matched by their position (first row of 4 cyl is matched to first row of 5 cyl 
+etc.). This is clearly wrong here (why?). Add a mapping to the `group` aesthetic
+to ensure that points do not move between the different states.
+
+
+```{r}
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy, group = seq_len(nrow(mpg)))) + 
+  ggtitle("Cars with {closest_state} cylinders") + 
+  transition_states(factor(cyl))
+```
+
+
+* * *
+
+In the presence of discrete aesthetic mappings (`colour` below), the group is
+deduced if not given. The default behaviour of objects that appear and disappear
+during the animation is to simply pop in and out of existance. `enter_*()` and
+`exit_*()` functions can be used to control this behaviour. Experiment with the
+different enter and exit functions provided by gganimate below. What happens if 
+you add multiple enter or exit functions to the same animation?
+
+```{r}
+ggplot(mpg) + 
+  geom_point(aes(x = displ, y = hwy, colour = factor(cyl))) + 
+  ggtitle("Cars with {closest_state} cylinders") + 
+  transition_states(factor(cyl))
+```
+
+* * *
+
+In the animation below (as in all the other animations) the changes happens at
+constant speed. How values change during an animation is called easing and can
+be controlled using the `ease_aes()` function. Read the documentation for 
+`ease_aes()` and experiment with different easings in the animation.
+
+```{r}
+mpg2 <- tidyr::pivot_longer(mpg, c(cty,hwy))
+
+ggplot(mpg2) + 
+  geom_point(aes(x = displ, y = value)) + 
+  ggtitle("{if (closest_state == 'cty') 'Efficiency in city' else 'Efficiency on highway'}") +
+  transition_states(name)
+```
+
+```{r}
+mpg2 <- tidyr::pivot_longer(mpg, c(cty,hwy))
+
+ggplot(mpg2) + 
+  geom_point(aes(x = displ, y = value)) + 
+  ggtitle("{if (closest_state == 'cty') 'Efficiency in city' else 'Efficiency on highway'}") +
+  transition_states(name) +
+  ease_aes(y = 'cubic-in-out')  # the graph movement is no longer linear, it speeds up and down...this is nicer to look at but beware not to use this when moving along a time axis!
+```
+
+
+### Annotation
+Text is a huge part of storytelling with your visualisation. Historically, 
+textual annotations has not been the best part of ggplot2 but new extensions 
+make up for that.
+
+Standard geom_text will often result in overlaping labels
+```{r}
+ggplot(mtcars, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_text(aes(label = row.names(mtcars)))
+```
+
+ggrepel takes care of that
+
+```{r}
+library(ggrepel)
+ggplot(mtcars, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_text_repel(aes(label = row.names(mtcars)))
+```
+
+If you want to highlight certain parts of your data and describe it, the 
+`geom_mark_*()` family of geoms have your back
+
+```{r}
+library(ggforce)
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_ellipse(aes(filter = gear == 4,
+                        label = '4 gear cars',
+                        description = 'Cars with fewer gears tend to both have higher yield and lower displacement'))
+```
+
+#### Exercises
+ggrepel has a tonne of settings for controlling how text labels move. Often, 
+though, the most effective is simply to not label everything. There are two
+strategies for that: Either only use a subset of the data for the repel layer,
+or setting the label to `""` for those you don't want to plot. Try both in the 
+plot below where you only label 10 random points.
+
+```{r}
+mtcars2 <- mtcars
+mtcars2$label <- rownames(mtcars2)
+points_to_label <- sample(nrow(mtcars), 10)
+ggplot(mtcars2, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_text_repel(aes(label = label))
+```
+
+* * *
+
+Explore the documentation for `geom_text_repel`. Find a way to ensure that the 
+labels in the plot below only repels in the vertical direction
+
+```{r}
+mtcars2$label <- ""
+mtcars2$label[1:10] <- rownames(mtcars2)[1:10]
+ggplot(mtcars2, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_text_repel(aes(label = label))
+```
+
+* * *
+
+ggforce comes with 4 different types of mark geoms. Try them all out in the code
+below:
+
+```{r}
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_ellipse(aes(filter = gear == 4,
+                        label = '4 gear cars'))
+```
+
+### Networks
+ggplot2 has been focused on tabular data. Network data in any shape and form is
+handled by ggraph
+
+```{r}
+library(ggraph)
+library(tidygraph)
+graph <- create_notable('zachary') %>% 
+  mutate(clique = as.factor(group_infomap()))
+ggraph(graph) + 
+  geom_mark_hull(aes(x, y, fill = clique)) + 
+  geom_edge_link() + 
+  geom_node_point(size = 2)
+```
+
+dendrograms are just a specific type of network
+
+```{r}
+iris_clust <- hclust(dist(iris[, 1:4]))
+ggraph(iris_clust) + 
+  geom_edge_bend() + 
+  geom_node_point(aes(filter = leaf))
+```
+
+#### Exercies
+Most network plots are defined by a layout algorithm, which takes the network 
+structure and calculate a position for each node. The layout algorithm is 
+global and set in the `ggraph()`. The default `auto` layout will inspect the
+network object and try to choose a sensible layout for it (e.g. dendrogram for a
+hierarchical clustering as above). There is, however no optimal layout and it is
+often a good idea to try out different layouts. Try out different layouts in the
+graph below. See the [the website](https://ggraph.data-imaginist.com/reference/index.html)
+for an overview of the different layouts.
+
+```{r}
+ggraph(graph) + 
+  geom_edge_link() + 
+  geom_node_point(aes(colour = clique), size = 3)
+```
+
+* * *
+
+There are many different ways to draw edges. Try to use `geom_edge_parallel()` 
+in the graph below to show the presence of multiple edges
+
+```{r}
+highschool_gr <- as_tbl_graph(highschool)
+ggraph(highschool_gr) + 
+  geom_edge_link() + 
+  geom_node_point()
+```
+
+Faceting works in ggraph as it does in ggplot2, but you must choose to facet by
+either nodes or edges. Modify the graph below to facet the edges by the `year` 
+variable (using `facet_edges()`)
+
+```{r}
+ggraph(highschool_gr) + 
+  geom_edge_fan() + 
+  geom_node_point()
+```
+
+### Looks
+Many people have already desgned beautiful (and horrible) themes for you. Use
+them as a base
+
+```{r}
+p <- ggplot(mtcars, aes(mpg, wt)) +
+  geom_point(aes(color = factor(carb))) +
+  labs(
+    x = 'Fuel efficiency (mpg)', 
+    y = 'Weight (tons)',
+    title = 'Seminal ggplot2 example',
+    subtitle = 'A plot to show off different themes',
+    caption = 'Source: It’s mtcars — everyone uses it'
+  )
+library(hrbrthemes)
+p + 
+  scale_colour_ipsum() + 
+  theme_ipsum()
+```
+
+```{r}
+library(ggthemes)
+p + 
+  scale_colour_excel() + 
+  theme_excel()
+```
+
+## Drawing anything
+
+```{r}
+states <- c(
+  'eaten', "eaten but said you didn\'t", 'cat took it', 'for tonight',
+  'will decompose slowly'
+)
+pie <- data.frame(
+  state = factor(states, levels = states),
+  amount = c(4, 3, 1, 1.5, 6),
+  stringsAsFactors = FALSE
+)
+ggplot(pie) + 
+  geom_col(aes(x = 0, y = amount, fill = state))
+```
+
+```{r}
+ggplot(pie) + 
+  geom_col(aes(x = 0, y = amount, fill = state)) + 
+  coord_polar(theta = 'y')
+```
+
+```{r}
+ggplot(pie) + 
+  geom_col(aes(x = 0, y = amount, fill = state)) + 
+  coord_polar(theta = 'y') + 
+  scale_fill_tableau(name = NULL,
+                     guide = guide_legend(ncol = 2)) + 
+  theme_void() + 
+  theme(legend.position = 'top', 
+        legend.justification = 'left')
+```
+
+```{r}
+ggplot(pie) + 
+  geom_arc_bar(aes(x0 = 0, y0 = 0, r0 = 0, r = 1, amount = amount, fill = state), stat = 'pie') + 
+  coord_fixed()
+```
+
+```{r}
+ggplot(pie) + 
+  geom_arc_bar(aes(x0 = 0, y0 = 0, r0 = 0, r = 1, amount = amount, fill = state), stat = 'pie') + 
+  coord_fixed() + 
+  scale_fill_tableau(name = NULL,
+                     guide = guide_legend(ncol = 2)) + 
+  theme_void() + 
+  theme(legend.position = 'top', 
+        legend.justification = 'left')
+```
+
+```{r}
+ggplot(mpg) + 
+  # geom_bar(aes(x = hwy), stat = 'bin')
+  geom_histogram(aes(x = hwy))
+```
+
+```{r}
+ggplot(mpg) + 
+  geom_bar(aes(x = hwy)) + 
+  scale_x_binned(n.breaks = 30, guide = guide_axis(n.dodge = 2))
+```
