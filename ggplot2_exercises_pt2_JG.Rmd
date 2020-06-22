@@ -283,6 +283,33 @@ ggplot(mtcars2, aes(x = disp, y = mpg)) +
   geom_text_repel(aes(label = label))
 ```
 
+```{r}
+mtcars2 <- mtcars
+mtcars2$label <- rownames(mtcars2)
+points_to_label <- sample(nrow(mtcars), 10)
+
+ggplot(mtcars2, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_text_repel(aes(label = label), data = mtcars2[points_to_label,])
+```
+
+```{r}
+
+mtcars2 <- mtcars
+mtcars2$label <- rownames(mtcars2)
+points_to_label <- sample(nrow(mtcars), 10)
+
+
+mtcars2$label[-points_to_label] <- ""  # Stop overlapping of labels with points
+ggplot(mtcars2, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_text_repel(aes(label = label))
+
+
+
+```
+
+
 * * *
 
 Explore the documentation for `geom_text_repel`. Find a way to ensure that the 
@@ -296,6 +323,15 @@ ggplot(mtcars2, aes(x = disp, y = mpg)) +
   geom_text_repel(aes(label = label))
 ```
 
+```{r}
+mtcars2$label <- ""
+mtcars2$label[1:10] <- rownames(mtcars2)[1:10]
+ggplot(mtcars2, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_text_repel(aes(label = label), direction = 'y')
+```
+
+
 * * *
 
 ggforce comes with 4 different types of mark geoms. Try them all out in the code
@@ -306,6 +342,49 @@ ggplot(mtcars, aes(x = disp, y = mpg)) +
   geom_point() + 
   geom_mark_ellipse(aes(filter = gear == 4,
                         label = '4 gear cars'))
+
+# geom_mark_rect
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_rect(aes(filter = gear == 4,
+                        label = '4 gear cars'))
+
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_rect(aes(filter = gear == 4,
+                        label = '4 gear cars'), expand = 0)
+
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_rect(aes(filter = gear == 4,
+                        label = '4 gear cars'), radius = 0)
+
+#geom_mark_circle
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_circle(aes(filter = gear == 4,
+                        label = '4 gear cars'))
+
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_circle(aes(filter = gear == 4,
+                        label = '4 gear cars')) +
+  coord_cartesian(clip = 'off')
+
+
+# geom_mark_hull
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_hull(aes(filter = gear == 4,
+                        label = '4 gear cars'), concavity = 7)
+
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() +
+  geom_mark_hull(aes(fill = factor(gear), label = gear))
+
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() +
+  geom_mark_hull(aes(group = factor(gear), label = gear), fill = NA, colour = NA)
 ```
 
 ### Networks
@@ -313,26 +392,34 @@ ggplot2 has been focused on tabular data. Network data in any shape and form is
 handled by ggraph
 
 ```{r}
-library(ggraph)
-library(tidygraph)
+library(ggraph)  # Thomoas Pedersen's packages, gives best capabilities
+library(tidygraph)  # These 2 packages usually come together
+
 graph <- create_notable('zachary') %>% 
   mutate(clique = as.factor(group_infomap()))
+
+ggraph(graph) + 
+  geom_edge_link() + 
+  geom_node_point(aes(colour = clique), size = 2)
+
 ggraph(graph) + 
   geom_mark_hull(aes(x, y, fill = clique)) + 
   geom_edge_link() + 
-  geom_node_point(size = 2)
+  geom_node_point(aes(colour = clique), size = 2)
+
 ```
 
 dendrograms are just a specific type of network
 
 ```{r}
 iris_clust <- hclust(dist(iris[, 1:4]))
+
 ggraph(iris_clust) + 
   geom_edge_bend() + 
   geom_node_point(aes(filter = leaf))
 ```
 
-#### Exercies
+#### Exercises
 Most network plots are defined by a layout algorithm, which takes the network 
 structure and calculate a position for each node. The layout algorithm is 
 global and set in the `ggraph()`. The default `auto` layout will inspect the
@@ -348,6 +435,13 @@ ggraph(graph) +
   geom_node_point(aes(colour = clique), size = 3)
 ```
 
+```{r}
+ggraph(graph, layout = 'gem') + 
+  geom_edge_link() + 
+  geom_node_point(aes(colour = clique), size = 3)
+```
+
+
 * * *
 
 There are many different ways to draw edges. Try to use `geom_edge_parallel()` 
@@ -357,6 +451,15 @@ in the graph below to show the presence of multiple edges
 highschool_gr <- as_tbl_graph(highschool)
 ggraph(highschool_gr) + 
   geom_edge_link() + 
+  geom_node_point()
+
+#highschool_gr <- as_tbl_graph(highschool)
+ggraph(highschool_gr) + 
+  geom_edge_parallel() + 
+  geom_node_point()
+
+ggraph(highschool_gr) + 
+  geom_edge_fan() + 
   geom_node_point()
 ```
 
@@ -368,6 +471,12 @@ variable (using `facet_edges()`)
 ggraph(highschool_gr) + 
   geom_edge_fan() + 
   geom_node_point()
+
+ggraph(highschool_gr) + 
+  geom_edge_fan() + 
+  geom_node_point() +
+  facet_edges(~year)
+
 ```
 
 ### Looks
@@ -384,7 +493,9 @@ p <- ggplot(mtcars, aes(mpg, wt)) +
     subtitle = 'A plot to show off different themes',
     caption = 'Source: It’s mtcars — everyone uses it'
   )
-library(hrbrthemes)
+
+library(hrbrthemes)  # great starting point for nice themes
+
 p + 
   scale_colour_ipsum() + 
   theme_ipsum()
@@ -394,7 +505,7 @@ p +
 library(ggthemes)
 p + 
   scale_colour_excel() + 
-  theme_excel()
+  theme_excel()  # Looks like an Excel graph
 ```
 
 ## Drawing anything
@@ -404,11 +515,13 @@ states <- c(
   'eaten', "eaten but said you didn\'t", 'cat took it', 'for tonight',
   'will decompose slowly'
 )
+
 pie <- data.frame(
   state = factor(states, levels = states),
   amount = c(4, 3, 1, 1.5, 6),
   stringsAsFactors = FALSE
 )
+
 ggplot(pie) + 
   geom_col(aes(x = 0, y = amount, fill = state))
 ```
@@ -451,6 +564,10 @@ ggplot(pie) +
 ggplot(mpg) + 
   # geom_bar(aes(x = hwy), stat = 'bin')
   geom_histogram(aes(x = hwy))
+
+ggplot(mpg) + 
+  geom_bar(aes(x = hwy), stat = 'bin')
+#  geom_histogram(aes(x = hwy))
 ```
 
 ```{r}
